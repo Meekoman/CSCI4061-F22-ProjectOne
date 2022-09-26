@@ -132,9 +132,32 @@ int bad_format (char *uri) {
  */
 void uri_entered_cb(GtkWidget* entry, gpointer data)
 {
-  //STUDENTS IMPLEMENT
+  // (a) What happens if data is empty? No Url passed in? Handle that
+  if (data == NULL) {
+    perror("No URL entered");
+    return;
+  }
+
+ // (b) Get the URL from the GtkWidget (hint: look at wrapper.h)
+  char *url_pointer = get_entered_uri(entry);
+
+  char uri[MAX_URL];
+
+  strncpy(uri, url_pointer, MAX_URL); // convert character pointer to string
+  // we'll probably need to use other string functions on this 
+  // so making sure it's got the null end character is important
+  // gotta use strncpy() (not strcpy()) to prevent case where entered URL >> MAX_URL. 
+
+ // (c) Print the URL you got, this is the intermediate submission
+  puts(uri);
+  
+ // (d) Check for a bad url format THEN check if it is in the blacklist
+ // (e) Check for number of tabs! Look at constraints section in lab
+ // (f) Open the URL, this will need some 'forking' some 'execing' etc. 
   return;
 }
+
+
 
 /* === STUDENTS IMPLEMENT=== */
 /* 
@@ -168,7 +191,7 @@ void init_blacklist (char *fname) {
 	char *blackList[MAX_BAD]; // allocating array of pointers to blacklist strings
   	
   char tempString[MAX_URL]; // allocating character slots for storing one line/URL while working
-  int i ;
+  int i = 0;
 //  for (i = 0; 
 //	  (i < MAX_BAD) && (ungetc(1, f) != -1);
 //	  i++) { // todo: how to get this to loop over all blacklist strings w/o seg fault
@@ -178,16 +201,16 @@ void init_blacklist (char *fname) {
     
     char first4[5];
     
-    memcpy(first4, tempString, 4);
+    strncpy(first4, tempString, 4);
     // printf("%s \n", first4);
   
     if (strcmp(first4, WWW) == 0) // if first character that does not match is greater than 
     { 
-      memcpy(blackList[i], (tempString+4), (MAX_URL)); // move pointer to start of string back 4 spaces
+      strncpy(blackList[i], (tempString+4), (MAX_URL)); // move pointer to start of string back 4 spaces
       // ex www.google.com >> google.com
     }
     else {
-      memcpy(blackList[i], tempString, MAX_URL);
+      strncpy(blackList[i], tempString, MAX_URL);
     }
     // store truncated string in blackList
     printf("%s \n", blackList[i]);
@@ -229,8 +252,31 @@ int main(int argc, char **argv)
 	char *fileName;
 	fileName = argv[1];
 	printf("%s\n", fileName);
-  	
-	init_blacklist(fileName);
+
+  // (b) Initialize the blacklist of url's ** in progress
+	// init_blacklist(fileName);
+
+
+  // (c) Create a controller process then run the controller
+  //         (i)  What should controller do if it is exited? Look at writeup (KILL! WAIT!)
+
+  pid_t controller = fork();
+  int status = 0;
+   
+  if (controller == -1){
+    perror("error creating controller fork");
+
+  }
+  else if (controller == 0) { // if process = child
+    run_control();
+  }
+  else { // if process = parent
+
+  // (d) Parent should not exit until the controller process is done 
+    wait(&status);
+    // printf("parent done waiting");
+  }
+
 
   return 0;
 }
