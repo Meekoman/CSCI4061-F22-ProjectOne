@@ -173,8 +173,28 @@ void uri_entered_cb(GtkWidget* entry, gpointer data)
   puts(uri);
   
  // (d) Check for a bad url format THEN check if it is in the blacklist
+  bool isBad = bad_format(get_entered_uri(entry));
+  fprintf (stderr, "Bad: %d  [1 for bad, 0 for good]\n", isBad);
  // (e) Check for number of tabs! Look at constraints section in lab
+
  // (f) Open the URL, this will need some 'forking' some 'execing' etc. 
+  pid_t pid = fork();
+  int wstatus;
+  int tabNumber = 0;
+  if (pid == -1) 
+  {
+    perror("fork() failed");
+    exit(1);
+  }
+  else if (pid == 0)
+  {      
+    execl("./render", "render", tabNumber, uri, NULL);
+    tabNumber++;
+    _exit(0);
+  }
+  else
+    wait(&wstatus);
+
   return;
 }
 
