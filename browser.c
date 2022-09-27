@@ -102,8 +102,29 @@ int on_blacklist (char *uri) {
               (a) String checking for http:// or https://
 */
 int bad_format (char *uri) {
-  //STUDENTS IMPLEMENT
-  return 0;
+    // Check if url starts with http or https //
+  // Start bad form as true (1) //
+  bool badForm = 1;
+  if(strncmp(uri, "https://", 8) == 0){
+    //fprintf(stderr, "https\n");
+    badForm = 0;
+  }
+  else if(strncmp(uri, "http://", 7) == 0){
+    //fprintf(stderr, "http\n");
+    badForm = 0;
+  }
+  else 
+    return badForm;
+
+  // Check if url is shorter than max url length //
+  if(strlen(uri) < MAX_URL) {
+    //fprintf(stderr, "url length: %zu\n", strlen(uri)) ;
+    badForm = 0;
+  }
+  else
+    badForm = 1;
+
+  return badForm;
 }
 
 /* === STUDENTS IMPLEMENT=== */
