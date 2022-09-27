@@ -32,7 +32,7 @@ void init_blacklist (char *fname);
 /* === STUDENTS IMPLEMENT=== */
 // HINT: What globals might you want to declare?
 char WWW[5] = {'w','w','w','.','\0'}; // "www." for string comparisons
-
+char blackList[MAX_BAD][MAX_URL]; // allocating array of strings to hold blacklist strings
 
 /* === PROVIDED CODE === */
 /*
@@ -210,57 +210,39 @@ void uri_entered_cb(GtkWidget* entry, gpointer data)
             (b) If we want this list of url's to be accessible elsewhere, where do we put the array?
 */
 void init_blacklist (char *fname) {
-	printf("function reached successfully");
-	
-	// using this from Linux System Programming book, p73 - file as "stream" to get access to ungetc
-	int fd;
-	fd = open (fname, O_RDONLY);
-	if (fd == -1) {
-   		perror("error creating file descriptor");
-   		exit(0);
-   }
-	
+		
 	FILE *f;
-	f = fdopen(fd, "r"); 
-	if (!f) {
+	f = fopen(fname, "r"); 
+	if (f==NULL) {
     perror("error opening blacklist");
  		exit(0);
   }
-   
-  printf("file opened successfully");
- 
-	char *blackList[MAX_BAD]; // allocating array of pointers to blacklist strings
-  	
-  char tempString[MAX_URL]; // allocating character slots for storing one line/URL while working
-  int i = 0;
-//  for (i = 0; 
-//	  (i < MAX_BAD) && (ungetc(1, f) != -1);
-//	  i++) { // todo: how to get this to loop over all blacklist strings w/o seg fault
+    
+  // allocating character slots for storing one line/URL while working
+  char tempString[MAX_URL]; 
   
-    fgets(tempString, MAX_URL, f);
+  for (int i = 0; 
+	  (fgets(tempString, MAX_URL, f));
+	  i++) { 
+  
     // truncate www. if it exists
-    
     char first4[5];
-    
-    strncpy(first4, tempString, 4);
-    // printf("%s \n", first4);
-  
-    if (strcmp(first4, WWW) == 0) // if first character that does not match is greater than 
+    strncpy(first4, tempString, 4);  
+    if (strcmp(first4, WWW) == 0) // if first4 == www, then: 
     { 
-      strncpy(blackList[i], (tempString+4), (MAX_URL)); // move pointer to start of string back 4 spaces
-      // ex www.google.com >> google.com
+      // move pointer to start of string back 4 spaces and copy into blacklist
+      strncpy(blackList[i], (tempString+4), (MAX_URL)); 
+      // ex |www.google.com >> www.|google.com
     }
+
+    // if it doesn't start with "www." then:
     else {
       strncpy(blackList[i], tempString, MAX_URL);
     }
-    // store truncated string in blackList
-    printf("%s \n", blackList[i]);
-    if (feof(f)) {
-      printf("end of file reached");
-      exit(0);
-    }
 
-// }  // end of for loop
+  printf("blacklist[%d]: %s", i, blackList[i]);  
+
+  }  
 
   if (fclose(f)) {
   	perror("cannot close file");
@@ -292,10 +274,9 @@ int main(int argc, char **argv)
   // initialize pointer then open blacklist file
 	char *fileName;
 	fileName = argv[1];
-	printf("%s\n", fileName);
 
   // (b) Initialize the blacklist of url's ** in progress
-	// init_blacklist(fileName);
+	init_blacklist(fileName);
 
 
   // (c) Create a controller process then run the controller
