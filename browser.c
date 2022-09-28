@@ -33,6 +33,7 @@ void init_blacklist (char *fname);
 // HINT: What globals might you want to declare?
 char WWW[5] = {'w','w','w','.','\0'}; // "www." for string comparisons
 char blackList[MAX_BAD][MAX_URL]; // allocating array of strings to hold blacklist strings
+int tabNumber = 0;
 
 /* === PROVIDED CODE === */
 /*
@@ -89,6 +90,15 @@ int run_control()
 */ 
 int on_blacklist (char *uri) {
   //STUDENTS IMPLEMENT
+  // bool exists = 0;
+  // for(int i = 0; i < 3; i++){
+  //   if(strcmp(uri, blackList[i]) == 0) {
+  //     exists = 1;
+  //   }
+  //   else {
+  //     exists = 0;
+  //   }
+  // }
   return 0;
 }
 
@@ -173,27 +183,44 @@ void uri_entered_cb(GtkWidget* entry, gpointer data)
   puts(uri);
   
  // (d) Check for a bad url format THEN check if it is in the blacklist
-  bool isBad = bad_format(get_entered_uri(entry));
-  fprintf (stderr, "Bad: %d  [1 for bad, 0 for good]\n", isBad);
+  bool isBad = bad_format(url_pointer);
+  if(isBad == 1) {
+    alert("Bad URL format entered.");
+    return;
+  }
+
+  bool inBlacklist = on_blacklist(url_pointer);
+  if(inBlacklist == 1){
+    printf("This URL exists in the blackList.");
+  }
  // (e) Check for number of tabs! Look at constraints section in lab
+ if(tabNumber >= MAX_TAB){
+  alert("maximal no. of tabs cannot exceed MAX_TABS");
+  return;
+ }
 
  // (f) Open the URL, this will need some 'forking' some 'execing' etc. 
   pid_t pid = fork();
-  int wstatus;
-  int tabNumber = 0;
   if (pid == -1) 
   {
     perror("fork() failed");
     exit(1);
   }
   else if (pid == 0)
-  {      
-    execl("./render", "render", tabNumber, uri, NULL);
-    tabNumber++;
-    _exit(0);
+  {   
+    //pass in the tabNumber 
+    //convert tabNumber into a string
+    char tab[20];
+    sprintf(tab, "%d", tabNumber);   
+    // int exe = execl("./render", "render", tab , url_pointer, NULL);
+    // if(exe != 0){
+    //   printf("Failed to execute render. Error code: %d \n", exe);
+    // }
+    exit(0);
   }
-  else
-    wait(&wstatus);
+  else {
+    tabNumber++;
+  }
 
   return;
 }
@@ -291,6 +318,7 @@ int main(int argc, char **argv)
   }
   else if (controller == 0) { // if process = child
     run_control();
+    //have to kill & wait for processes
   }
   else { // if process = parent
 
