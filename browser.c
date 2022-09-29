@@ -34,6 +34,8 @@ void init_blacklist (char *fname);
 char WWW[5] = {'w','w','w','.','\0'}; // "www." for string comparisons
 char blackList[MAX_BAD][MAX_URL]; // allocating array of strings to hold blacklist strings
 int tabNumber = 0;
+int tab = 0;
+int PIDS[MAX_TAB];
 
 /* === PROVIDED CODE === */
 /*
@@ -90,15 +92,6 @@ int run_control()
 */ 
 int on_blacklist (char *uri) {
   //STUDENTS IMPLEMENT
-  // bool exists = 0;
-  // for(int i = 0; i < 3; i++){
-  //   if(strcmp(uri, blackList[i]) == 0) {
-  //     exists = 1;
-  //   }
-  //   else {
-  //     exists = 0;
-  //   }
-  // }
   return 0;
 }
 
@@ -184,44 +177,48 @@ void uri_entered_cb(GtkWidget* entry, gpointer data)
   
  // (d) Check for a bad url format THEN check if it is in the blacklist
   bool isBad = bad_format(url_pointer);
-  if(isBad == 1) {
+  if(isBad) {
     alert("Bad URL format entered.");
     return;
   }
 
   bool inBlacklist = on_blacklist(url_pointer);
-  if(inBlacklist == 1){
-    printf("This URL exists in the blackList.");
+  if(inBlacklist){
+    alert("This URL exists in the blackList.");
+    return;
   }
  // (e) Check for number of tabs! Look at constraints section in lab
  if(tabNumber >= MAX_TAB){
-  alert("maximal no. of tabs cannot exceed MAX_TABS");
+  alert("the number of tabs cannot exceed MAX_TABS");
   return;
  }
+ 
 
  // (f) Open the URL, this will need some 'forking' some 'execing' etc. 
   pid_t pid = fork();
-  if (pid == -1) 
+  if (pid < 0) 
   {
     perror("fork() failed");
     exit(1);
   }
   else if (pid == 0)
   {   
-    //pass in the tabNumber 
-    //convert tabNumber into a string
-    char tab[20];
-    sprintf(tab, "%d", tabNumber);   
-    // int exe = execl("./render", "render", tab , url_pointer, NULL);
-    // if(exe != 0){
-    //   printf("Failed to execute render. Error code: %d \n", exe);
-    // }
+    //pass in the tab 
+    //convert tab into a string
+    char tab_str[2];
+    sprintf(tab_str, "%d", tab);   
+    int exe = execl("./render", (char*)"render", (char*)tab_str , uri, NULL);
+    if(exe != 0){
+      printf("Failed to execute render. Error code: %d \n", exe);
+    }
     exit(0);
   }
   else {
+    //increase no. of tabs
     tabNumber++;
+    //save process ID
+    PIDS[tab++] = pid;
   }
-
   return;
 }
 
@@ -310,20 +307,32 @@ int main(int argc, char **argv)
   //         (i)  What should controller do if it is exited? Look at writeup (KILL! WAIT!)
 
   pid_t controller = fork();
-  int status = 0;
    
-  if (controller == -1){
+  if (controller < 0){
     perror("error creating controller fork");
+    return -1;
 
   }
   else if (controller == 0) { // if process = child
+    //run the controller
     run_control();
-    //have to kill & wait for processes
+    
+    //KILL & WAIT for children
+    //have to kill all children
+    for(int i = 0; i <= tab; i++){
+      kill(PIDS[i], SIGKILL);
+      //kill(pid_t pid, SIGKILL);
+    }
+
+    //have to wait for all children
+    for(int i=0; i <= tab; i++){
+      wait(NULL);
+    }
   }
   else { // if process = parent
-
   // (d) Parent should not exit until the controller process is done 
-    wait(&status);
+    wait(NULL);
+    exit(0);
     // printf("parent done waiting");
   }
 
