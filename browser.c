@@ -32,7 +32,11 @@ void init_blacklist (char *fname);
 /* === STUDENTS IMPLEMENT=== */
 // HINT: What globals might you want to declare?
 char WWW[5] = {'w','w','w','.','\0'}; // "www." for string comparisons
-
+char blackList[MAX_BAD][MAX_URL]; // allocating array of strings to hold blacklist strings
+int tabNumber = 0;
+int tab = 0;
+int PIDS[MAX_TAB];
+int blackListlen = 0;
 
 /* === PROVIDED CODE === */
 /*
@@ -85,10 +89,22 @@ int run_control()
     Hints:
             (a) File I/O
             (b) Handle case with and without "www." (see writeup for details)
-            (c) How should you handle "http://" and "https://" ??
+            (c) How should you handle "http://" and "https://"
 */ 
 int on_blacklist (char *uri) {
   //STUDENTS IMPLEMENT
+  //I need to truncate uri having http(s)/www
+  //printf("this is the uri %s \n", uri);
+  for(int i=0; i < blackListlen; i++){
+    int same = strcmp(uri, blackList[i]);
+    if(same == 0){
+      //true if it's in the blacklist
+      return 1;
+    }
+    
+    //fprintf(stderr, "This is %d ", same );
+  }
+  //false if not in blacklist
   return 0;
 }
 
@@ -173,28 +189,49 @@ void uri_entered_cb(GtkWidget* entry, gpointer data)
   puts(uri);
   
  // (d) Check for a bad url format THEN check if it is in the blacklist
-  bool isBad = bad_format(get_entered_uri(entry));
-  fprintf (stderr, "Bad: %d  [1 for bad, 0 for good]\n", isBad);
+  bool isBad = bad_format(url_pointer);
+  if(isBad) {
+    alert("Bad URL format entered.");
+    return;
+  }
+
+  bool inBlacklist = on_blacklist(url_pointer);
+  if(inBlacklist){
+    alert("This URL exists in the blackList.");
+    return;
+  }
  // (e) Check for number of tabs! Look at constraints section in lab
+ if(tabNumber >= MAX_TAB){
+  alert("the number of tabs cannot exceed MAX_TABS");
+  return;
+ }
+ 
 
  // (f) Open the URL, this will need some 'forking' some 'execing' etc. 
   pid_t pid = fork();
-  int wstatus;
-  int tabNumber = 0;
-  if (pid == -1) 
+  if (pid < 0) 
   {
     perror("fork() failed");
     exit(1);
   }
   else if (pid == 0)
-  {      
-    execl("./render", "render", tabNumber, uri, NULL);
-    tabNumber++;
-    _exit(0);
+  {   
+    //pass in the tab 
+    //convert tab into a string
+    char tab_str[2];
+    sprintf(tab_str, "%d", tab);   
+    int exe = execl("./render", (char*)"render", (char*)tab_str , uri, NULL);
+    if(exe != 0){
+      printf("Failed to execute render. Error code: %d \n", exe);
+    }
+    exit(0);
   }
-  else
-    wait(&wstatus);
-
+  else {
+    //increase no. of tabs
+    tabNumber++;
+    //save process ID
+    PIDS[tab++] = pid;
+  }
   return;
 }
 
@@ -210,57 +247,41 @@ void uri_entered_cb(GtkWidget* entry, gpointer data)
             (b) If we want this list of url's to be accessible elsewhere, where do we put the array?
 */
 void init_blacklist (char *fname) {
-	printf("function reached successfully");
-	
-	// using this from Linux System Programming book, p73 - file as "stream" to get access to ungetc
-	int fd;
-	fd = open (fname, O_RDONLY);
-	if (fd == -1) {
-   		perror("error creating file descriptor");
-   		exit(0);
-   }
-	
+		
 	FILE *f;
-	f = fdopen(fd, "r"); 
-	if (!f) {
+	f = fopen(fname, "r"); 
+	if (f==NULL) {
     perror("error opening blacklist");
  		exit(0);
   }
-   
-  printf("file opened successfully");
- 
-	char *blackList[MAX_BAD]; // allocating array of pointers to blacklist strings
-  	
-  char tempString[MAX_URL]; // allocating character slots for storing one line/URL while working
-  int i = 0;
-//  for (i = 0; 
-//	  (i < MAX_BAD) && (ungetc(1, f) != -1);
-//	  i++) { // todo: how to get this to loop over all blacklist strings w/o seg fault
+    
+  // allocating character slots for storing one line/URL while working
+  char tempString[MAX_URL]; 
   
-    fgets(tempString, MAX_URL, f);
+  for (int i = 0; 
+	  (fgets(tempString, MAX_URL, f));
+	  i++) { 
+  
     // truncate www. if it exists
-    
     char first4[5];
-    
-    strncpy(first4, tempString, 4);
-    // printf("%s \n", first4);
-  
-    if (strcmp(first4, WWW) == 0) // if first character that does not match is greater than 
+    strncpy(first4, tempString, 4);  
+    if (strcmp(first4, WWW) == 0) // if first4 == www, then: 
     { 
-      strncpy(blackList[i], (tempString+4), (MAX_URL)); // move pointer to start of string back 4 spaces
-      // ex www.google.com >> google.com
-    }
-    else {
-      strncpy(blackList[i], tempString, MAX_URL);
-    }
-    // store truncated string in blackList
-    printf("%s \n", blackList[i]);
-    if (feof(f)) {
-      printf("end of file reached");
-      exit(0);
+      // move pointer to start of string back 4 spaces and copy into blacklist
+      strncpy(blackList[i], (tempString+4), (MAX_URL)); 
+      blackListlen++;
+      // ex |www.google.com >> www.|google.com
     }
 
-// }  // end of for loop
+    // if it doesn't start with "www." then:
+    else {
+      strncpy(blackList[i], tempString, MAX_URL);
+      blackListlen++;
+    }
+
+  printf("blacklist[%d]: %s", i, blackList[i]);  
+
+  }  
 
   if (fclose(f)) {
   	perror("cannot close file");
@@ -292,29 +313,41 @@ int main(int argc, char **argv)
   // initialize pointer then open blacklist file
 	char *fileName;
 	fileName = argv[1];
-	printf("%s\n", fileName);
 
   // (b) Initialize the blacklist of url's ** in progress
-	// init_blacklist(fileName);
+	init_blacklist(fileName);
 
 
   // (c) Create a controller process then run the controller
   //         (i)  What should controller do if it is exited? Look at writeup (KILL! WAIT!)
 
   pid_t controller = fork();
-  int status = 0;
    
-  if (controller == -1){
+  if (controller < 0){
     perror("error creating controller fork");
+    return -1;
 
   }
   else if (controller == 0) { // if process = child
+    //run the controller
     run_control();
+    
+    //KILL & WAIT for children
+    //have to kill all children
+    for(int i = 0; i <= tab; i++){
+      kill(PIDS[i], SIGKILL);
+      //kill(pid_t pid, SIGKILL);
+    }
+
+    //have to wait for all children
+    for(int i=0; i <= tab; i++){
+      wait(NULL);
+    }
   }
   else { // if process = parent
-
   // (d) Parent should not exit until the controller process is done 
-    wait(&status);
+    wait(NULL);
+    exit(0);
     // printf("parent done waiting");
   }
 
