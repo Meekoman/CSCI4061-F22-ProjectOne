@@ -36,6 +36,7 @@ char blackList[MAX_BAD][MAX_URL]; // allocating array of strings to hold blackli
 int tabNumber = 0;
 int tab = 0;
 int PIDS[MAX_TAB];
+int blackListlen = 0;
 
 /* === PROVIDED CODE === */
 /*
@@ -88,10 +89,22 @@ int run_control()
     Hints:
             (a) File I/O
             (b) Handle case with and without "www." (see writeup for details)
-            (c) How should you handle "http://" and "https://" ??
+            (c) How should you handle "http://" and "https://"
 */ 
 int on_blacklist (char *uri) {
   //STUDENTS IMPLEMENT
+  //I need to truncate uri having http(s)/www
+  //printf("this is the uri %s \n", uri);
+  for(int i=0; i < blackListlen; i++){
+    int same = strcmp(uri, blackList[i]);
+    if(same == 0){
+      //true if it's in the blacklist
+      return 1;
+    }
+    
+    //fprintf(stderr, "This is %d ", same );
+  }
+  //false if not in blacklist
   return 0;
 }
 
@@ -256,12 +269,14 @@ void init_blacklist (char *fname) {
     { 
       // move pointer to start of string back 4 spaces and copy into blacklist
       strncpy(blackList[i], (tempString+4), (MAX_URL)); 
+      blackListlen++;
       // ex |www.google.com >> www.|google.com
     }
 
     // if it doesn't start with "www." then:
     else {
       strncpy(blackList[i], tempString, MAX_URL);
+      blackListlen++;
     }
 
   printf("blacklist[%d]: %s", i, blackList[i]);  
