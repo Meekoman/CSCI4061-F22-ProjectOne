@@ -31,7 +31,6 @@ void init_blacklist (char *fname);
 
 /* === STUDENTS IMPLEMENT=== */
 // HINT: What globals might you want to declare?
-char WWW[5] = {'w','w','w','.','\0'}; // "www." for string comparisons
 char blackList[MAX_BAD][MAX_URL]; // allocating array of strings to hold blacklist strings
 int tabNumber = 0;
 int tab = 0;
@@ -94,14 +93,49 @@ int run_control()
 int on_blacklist (char *uri) {
   //STUDENTS IMPLEMENT
   //I need to truncate uri having http(s)/www
+  // truncate www. if it exists
+
+  // make copies of a lot of things to compare them. 
+  // at this point, it should have checked if it started with https:// or http://
+  // so we need to cut those parts off and check if those are followed by www.
+
+  char uritemp[MAX_URL];
+  char uricompare[MAX_URL]; 
+  char https[] = "https://\0"; // length 9, 8 char
+  char http[] = "http://\0"; // length 8, 7 char
+  char www[] = "www.\0"; // length 5, 4 char
+
+  if (strncmp(uri, http, 7) == 0) // if uri starts with http://, then 
+  { 
+    // move pointer to start of string back 7 spaces and copy into temp
+    strncpy(uritemp, (uri+7), (MAX_URL)); 
+  }
+
+  else if (strncmp(uri, https, 8) == 0) // if uri starts with https://, then 
+  { 
+    // move pointer to start of string back 8 spaces and copy into temp
+    strncpy(uritemp, (uri+8), (MAX_URL)); 
+  }
+  
+  // now that http or https has been removed, we may need to remove www. as well
+  if (strncmp(uritemp, www, 4) == 0) // if the temp uri starts with www., then: 
+  { 
+    // move pointer to start of string back 4 spaces and copy back into final
+    strncpy(uricompare, (uritemp+4), (MAX_URL)); 
+  }
+  else 
+  {
+    strncpy(uricompare, uritemp, (MAX_URL));   
+  }
+
   //printf("this is the uri %s \n", uri);
+  int same = 0;
   for(int i=0; i < blackListlen; i++){
-    int same = strcmp(uri, blackList[i]);
+    same = strcmp(uricompare, blackList[i]);
     if(same == 0){
       //true if it's in the blacklist
       return 1;
     }
-    
     //fprintf(stderr, "This is %d ", same );
   }
   //false if not in blacklist
@@ -196,10 +230,14 @@ void uri_entered_cb(GtkWidget* entry, gpointer data)
   }
 
   bool inBlacklist = on_blacklist(url_pointer);
+
+  printf("inBlacklist = %d \n", inBlacklist);
+
   if(inBlacklist){
     alert("This URL exists in the blackList.");
     return;
   }
+
  // (e) Check for number of tabs! Look at constraints section in lab
  if(tabNumber >= MAX_TAB){
   alert("the number of tabs cannot exceed MAX_TABS");
@@ -247,7 +285,7 @@ void uri_entered_cb(GtkWidget* entry, gpointer data)
             (b) If we want this list of url's to be accessible elsewhere, where do we put the array?
 */
 void init_blacklist (char *fname) {
-		
+	char www[] = "www.\0"; // length 5, 4 char
 	FILE *f;
 	f = fopen(fname, "r"); 
 	if (f==NULL) {
@@ -260,12 +298,11 @@ void init_blacklist (char *fname) {
   
   for (int i = 0; 
 	  (fgets(tempString, MAX_URL, f));
-	  i++) { 
+	  i++) 
+  { 
   
     // truncate www. if it exists
-    char first4[5];
-    strncpy(first4, tempString, 4);  
-    if (strcmp(first4, WWW) == 0) // if first4 == www, then: 
+    if (strncmp(tempString, www, 4) == 0) // if first4 == www, then: 
     { 
       // move pointer to start of string back 4 spaces and copy into blacklist
       strncpy(blackList[i], (tempString+4), (MAX_URL)); 
@@ -279,7 +316,13 @@ void init_blacklist (char *fname) {
       blackListlen++;
     }
 
-  printf("blacklist[%d]: %s", i, blackList[i]);  
+    // check that \n wasn't stored as the last char and correct it if it was
+    int l = strlen(blackList[i]);
+    if (blackList[i][l-1]== '\n') {
+      blackList[i][l-1] = '\0';
+    }
+
+  // printf("blacklist[%d]: %s", i, blackList[i]);  
 
   }  
 
