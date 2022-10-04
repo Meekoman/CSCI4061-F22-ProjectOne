@@ -91,11 +91,6 @@ int run_control()
             (c) How should you handle "http://" and "https://"
 */ 
 int on_blacklist (char *uri) {
-  //STUDENTS IMPLEMENT
-  //I need to truncate uri having http(s)/www
-  // truncate www. if it exists
-
-  // make copies of a lot of things to compare them. 
   // at this point, it should have checked if it started with https:// or http://
   // so we need to cut those parts off and check if those are followed by www.
 
@@ -128,15 +123,16 @@ int on_blacklist (char *uri) {
     strncpy(uricompare, uritemp, (MAX_URL));   
   }
 
-  //printf("this is the uri %s \n", uri);
   int same = 0;
   for(int i=0; i < blackListlen; i++){
     same = strcmp(uricompare, blackList[i]);
+    
     if(same == 0){
       //true if it's in the blacklist
+      
       return 1;
     }
-    //fprintf(stderr, "This is %d ", same );
+    
   }
   //false if not in blacklist
   return 0;
@@ -156,11 +152,9 @@ int bad_format (char *uri) {
   // Start bad form as true (1) //
   bool badForm = 1;
   if(strncmp(uri, "https://", 8) == 0){
-    //fprintf(stderr, "https\n");
     badForm = 0;
   }
   else if(strncmp(uri, "http://", 7) == 0){
-    //fprintf(stderr, "http\n");
     badForm = 0;
   }
   else 
@@ -168,7 +162,6 @@ int bad_format (char *uri) {
 
   // Check if url is shorter than max url length //
   if(strlen(uri) < MAX_URL) {
-    //fprintf(stderr, "url length: %zu\n", strlen(uri)) ;
     badForm = 0;
   }
   else
@@ -218,6 +211,12 @@ void uri_entered_cb(GtkWidget* entry, gpointer data)
   // we'll probably need to use other string functions on this 
   // so making sure it's got the null end character is important
   // gotta use strncpy() (not strcpy()) to prevent case where entered URL >> MAX_URL. 
+  
+  // error check for null URL
+  if (strcmp(uri, "\0") == 0 ) {
+    alert("No URL entered.");
+    return;
+  }
 
  // (c) Print the URL you got, this is the intermediate submission
   puts(uri);
@@ -322,7 +321,6 @@ void init_blacklist (char *fname) {
       blackList[i][l-1] = '\0';
     }
 
-  // printf("blacklist[%d]: %s", i, blackList[i]);  
 
   }  
 
@@ -362,7 +360,7 @@ int main(int argc, char **argv)
 
 
   // (c) Create a controller process then run the controller
-  //         (i)  What should controller do if it is exited? Look at writeup (KILL! WAIT!)
+  //     (i)  What should controller do if it is exited? Look at writeup (KILL! WAIT!)
 
   pid_t controller = fork();
    
@@ -391,7 +389,6 @@ int main(int argc, char **argv)
   // (d) Parent should not exit until the controller process is done 
     wait(NULL);
     exit(0);
-    // printf("parent done waiting");
   }
 
 
